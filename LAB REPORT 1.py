@@ -1,113 +1,123 @@
-import streamlit as st
-import matplotlib.pyplot as plt
-import networkx as nx
-from collections import deque
+# Lab Report BSD3513 – Artificial Intelligence
+# Chapter 2: Search Algorithms (BFS & DFS)
+# Student Name: NURFARAH ASYIQIN BINTI MD ADIM
+# Student ID: SD23021 
+# Section: 01G
 
-# --- Define the directed graph (from your question image) ---
+import streamlit as st
+from collections import deque
+from PIL import Image
+
+# ------------------------------------------------------------
+# Streamlit App Header
+# ------------------------------------------------------------
+st.set_page_config(page_title="BFS & DFS Visualizer", layout="centered")
+st.title("🔍 BFS and DFS Graph Traversal Visualizer")
+st.markdown("### BSD3513 – Lab Report 1")
+st.markdown("*Name:* NURFARAH ASYIQIN BINTI MD ADIM | *Student ID:* SD23021 | *Section:* 01G")
+
+# ------------------------------------------------------------
+# Display single image at the top
+# ------------------------------------------------------------
+st.subheader("Graph Reference Image")
+st.info("Below is the sample graph used for BFS and DFS traversal demonstrations.")
+try:
+    image = Image.open("BFS_img1.jpg")  # Make sure this image is in the same folder
+    st.image(image, caption="Graph used for BFS and DFS Traversal", use_column_width=True)
+except Exception:
+    st.warning("⚠ Image 'BFS_img1.jpg' not found. Place it in the same directory as this file.")
+
+# ------------------------------------------------------------
+# Graph Definition
+# ------------------------------------------------------------
 graph = {
-    "A": [],
-    "B": ["A", "C", "E", "G"],
-    "C": ["D"],
-    "D": ["B"],
-    "E": ["H"],
-    "F": [],
-    "G": ["F"],
-    "H": ["F"],
+    'A': ['B', 'C'],
+    'B': ['D', 'E'],
+    'C': ['F'],
+    'D': [],
+    'E': ['F'],
+    'F': []
 }
 
-# --- BFS Implementation ---
-def bfs(graph, start):
+st.subheader("⿡ Graph Structure")
+st.json(graph)
+
+# ------------------------------------------------------------
+# BFS Implementation
+# ------------------------------------------------------------
+def bfs(graph, start_node):
     visited = []
-    queue = deque([(start, 0)])  # (node, level)
-    levels = {start: 0}
+    queue = deque([start_node])
+    order = []
 
     while queue:
-        node, level = queue.popleft()
-        if node not in visited:
-            visited.append(node)
-            levels[node] = level
-            for neighbor in sorted(graph.get(node, [])):
-                if neighbor not in visited:
-                    queue.append((neighbor, level + 1))
-    return visited, levels
+        s = queue.popleft()
+        if s not in visited:
+            visited.append(s)
+            order.append(s)
+            for neighbour in graph[s]:
+                if neighbour not in visited and neighbour not in queue:
+                    queue.append(neighbour)
+    return order
 
-# --- DFS Implementation ---
-def dfs(graph, start, visited=None, levels=None, level=0):
+
+# ------------------------------------------------------------
+# DFS Implementation
+# ------------------------------------------------------------
+def dfs(graph, start_node, visited=None, order=None):
     if visited is None:
-        visited = []
-    if levels is None:
-        levels = {}
+        visited = set()
+        order = []
+    if start_node not in visited:
+        visited.add(start_node)
+        order.append(start_node)
+        for neighbour in graph[start_node]:
+            dfs(graph, neighbour, visited, order)
+    return order
 
-    visited.append(start)
-    levels[start] = level
 
-    for neighbor in sorted(graph.get(start, [])):
-        if neighbor not in visited:
-            dfs(graph, neighbor, visited, levels, level + 1)
-    return visited, levels
+# ------------------------------------------------------------
+# Streamlit Interface for Running Algorithms
+# ------------------------------------------------------------
+st.subheader("⿢ Choose Traversal Type")
+start_node = st.selectbox("Select Starting Node:", list(graph.keys()))
+algorithm = st.radio("Choose Algorithm:", ["Breadth-First Search (BFS)", "Depth-First Search (DFS)"])
 
-# --- Function to draw graph ---
-def draw_graph(graph, path):
-    G = nx.DiGraph()
+if st.button("Run Traversal"):
+    if algorithm == "Breadth-First Search (BFS)":
+        result = bfs(graph, start_node)
+        st.success("Traversal Order (BFS): " + " → ".join(result))
+    else:
+        result = dfs(graph, start_node)
+        st.success("Traversal Order (DFS): " + " → ".join(result))
 
-    # Add nodes and edges
-    for node, neighbors in graph.items():
-        for neighbor in neighbors:
-            G.add_edge(node, neighbor)
+    st.markdown("*Visited Nodes Order:*")
+    st.code(", ".join(result))
 
-    pos = nx.spring_layout(G, seed=42)  # Position layout for consistent graph shape
-
-    plt.figure(figsize=(7, 5))
-    nx.draw(
-        G, pos,
-        with_labels=True,
-        node_color=["lightgreen" if node in path else "lightgray" for node in G.nodes()],
-        node_size=1000,
-        font_size=12,
-        font_weight="bold",
-        edge_color="gray",
-        arrows=True,
-        arrowsize=15
-    )
-
-    # Highlight traversal path with red edges
-    edges_in_path = [(path[i], path[i+1]) for i in range(len(path)-1) if G.has_edge(path[i], path[i+1])]
-    nx.draw_networkx_edges(G, pos, edgelist=edges_in_path, edge_color="red", width=2.5)
-
-    st.pyplot(plt.gcf())
-    plt.close()
-
-# --- Streamlit App Layout ---
-st.title("🔍 Python Search Algorithms Visualization (BFS & DFS)")
-st.subheader("Directed Graph Search with Visualization")
+# ------------------------------------------------------------
+# Explanation Section
+# ------------------------------------------------------------
+st.markdown("---")
+st.subheader("⿣ Algorithm Explanation")
 
 st.markdown("""
-This app demonstrates **Breadth-First Search (BFS)** and **Depth-First Search (DFS)** 
-on a directed graph using alphabetical tie-breaking.
+*Breadth-First Search (BFS)*  
+- Explores all neighbors level by level before moving deeper.  
+- Uses a *queue* (FIFO order).  
+- Example: A → B → C → D → E → F  
+
+*Depth-First Search (DFS)*  
+- Explores as far as possible down one branch before backtracking.  
+- Uses a *stack* (implicit recursion).  
+- Example: A → B → D → E → F → C
 """)
 
-# User input
-algorithm = st.selectbox("Select Search Algorithm", ["Breadth-First Search (BFS)", "Depth-First Search (DFS)"])
-start_node = st.selectbox("Select Starting Node", sorted(graph.keys()), index=1)
+st.markdown("### 📘 Complexity Summary")
+st.table({
+    "Algorithm": ["BFS", "DFS"],
+    "Time Complexity": ["O(V + E)", "O(V + E)"],
+    "Space Complexity": ["O(V)", "O(V)"]
+})
 
-if st.button("Run Search"):
-    if algorithm.startswith("Breadth"):
-        path, levels = bfs(graph, start_node)
-    else:
-        path, levels = dfs(graph, start_node)
-
-    # --- Show Results ---
-    st.write(f"### Traversal Path:")
-    st.success(" → ".join(path))
-
-    st.write("### Node Levels:")
-    for node in path:
-        st.write(f"**{node}** : Level {levels[node]}")
-
-    # --- Visualize Graph ---
-    st.write("### Graph Visualization")
-    draw_graph(graph, path)
-
-    st.caption("🟩 Green = Visited nodes | 🔴 Red edges = Traversal order")
-
-st.info("BFS explores level by level, while DFS explores depth before breadth.")
+st.markdown("---")
+st.caption("Developed with Streamlit for BSD3513 Lab Report 1 – AI Search Algorithms.")
